@@ -1,7 +1,8 @@
 <?php
+
 /**
  * @file
- * Hooks and Exclusion Logic for the Static Metadata Records Module
+ * Hooks and Exclusion Logic for the Static Metadata Records Module.
  */
 
 use Drupal\node\NodeInterface;
@@ -11,115 +12,120 @@ use Drupal\node\Entity\Node;
  * Global helper function to check if a node should be skipped.
  */
 function static_metadata_records_exclude_node($nid) {
-    $node = Node::load($nid);
-    if (!$node) return TRUE;
+  $node = Node::load($nid);
+  if (!$node) {
+    return TRUE;
+  }
 
-    // get all the settings from the custom module's config form
-    $config = \Drupal::config('static_metadata_records.settings');
-    $excluded_content_types = array_filter($config->get('excluded_content_types') ?: []);
-    $excluded_field_machine_name = $config->get('excluded_field_machine_name');
-    $excluded_field_value = $config->get('excluded_field_value');
+  // Get all the settings from the custom module's config form.
+  $config = \Drupal::config('static_metadata_records.settings');
+  $excluded_content_types = array_filter($config->get('excluded_content_types') ?: []);
+  $excluded_field_machine_name = $config->get('excluded_field_machine_name');
+  $excluded_field_value = $config->get('excluded_field_value');
 
-    if (in_array($node->bundle(), $excluded_content_types)) {
-        // If field name or value is missing, warn and exclude.
-        if (empty($excluded_field_machine_name) || empty($excluded_field_value)) {
-            \Drupal::logger('static_metadata_records')->warning("Content type '{$node->bundle()}' is selected for exclusion, but field name or value is missing in config. Skipping node $nid.");
-            return TRUE;  // Exclude (don't add to queue).
-        }
-
-        if ($node->hasField($excluded_field_machine_name)) {
-            $field = $node->get($excluded_field_machine_name);
-            $field_definition = $field->getFieldDefinition();
-            $found_match = FALSE;
-
-            // handle reference types and regular types differently
-            if ($field_definition->getType() === 'entity_reference') {
-                $referenced_entities = $field->referencedEntities();
-                if (!empty($referenced_entities)) {
-                    $first_entity = $referenced_entities[0];
-                    $entity_label = $first_entity->label();
-                    if ($entity_label === $excluded_field_value) {
-                        $found_match = TRUE;
-                    }   
-                }
-            }
-            else {
-                $field_value = $field->value;
-                if ($field_value === $excluded_field_value) {
-                    $found_match = TRUE;
-                }
-            }
-
-            if ($found_match) {
-                \Drupal::logger('static_metadata_records')->error("Node $nid skipped. Matches exclusion filters.");
-                return TRUE;
-            }
-        }
-        else {
-            \Drupal::logger('static_metadata_records')->error("Node $nid does not have the required field '$excluded_field_machine_name' for exclusion check. Skipping.");
-            return TRUE;  // Exclude to avoid errors.
-        }
+  if (in_array($node->bundle(), $excluded_content_types)) {
+    // If field name or value is missing, warn and exclude.
+    if (empty($excluded_field_machine_name) || empty($excluded_field_value)) {
+      \Drupal::logger('static_metadata_records')->warning("Content type '{$node->bundle()}' is selected for exclusion, but field name or value is missing in config. Skipping node $nid.");
+      // Exclude (don't add to queue).
+      return TRUE;
     }
 
-    return FALSE;
+    if ($node->hasField($excluded_field_machine_name)) {
+      $field = $node->get($excluded_field_machine_name);
+      $field_definition = $field->getFieldDefinition();
+      $found_match = FALSE;
+
+      // Handle reference types and regular types differently.
+      if ($field_definition->getType() === 'entity_reference') {
+        $referenced_entities = $field->referencedEntities();
+        if (!empty($referenced_entities)) {
+          $first_entity = $referenced_entities[0];
+          $entity_label = $first_entity->label();
+          if ($entity_label === $excluded_field_value) {
+            $found_match = TRUE;
+          }
+        }
+      }
+      else {
+        $field_value = $field->value;
+        if ($field_value === $excluded_field_value) {
+          $found_match = TRUE;
+        }
+      }
+
+      if ($found_match) {
+        \Drupal::logger('static_metadata_records')->error("Node $nid skipped. Matches exclusion filters.");
+        return TRUE;
+      }
+    }
+    else {
+      \Drupal::logger('static_metadata_records')->error("Node $nid does not have the required field '$excluded_field_machine_name' for exclusion check. Skipping.");
+      // Exclude to avoid errors.
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
-
 /**
- * Implements hook_ENTITY_TYPE_update()
- * - Adds the updated node id to the queue if the node type is "islandora_object"
+ * Implements hook_node_update().
+ *
+ * Adds the updated node ID to the queue if the node type is islandora_object.
  */
 function static_metadata_records_node_update(NodeInterface $node) {
-    $config = \Drupal::config('static_metadata_records.settings');
-    if (!$config->get('enable_hooks')){
-        \Drupal::logger('static_metadata_records')->warning("enable hooks is disabled");
-        return;
-    }
+  $config = \Drupal::config('static_metadata_records.settings');
+  if (!$config->get('enable_hooks')) {
+    \Drupal::logger('static_metadata_records')->warning("enable hooks is disabled");
+    return;
+  }
 
-    // check if the node is already saved in the queue to avoid infinite loop
-    if ($node->save_flag){
-        return;
-    }
+  // Check if the node is already saved in the queue to avoid infinite loop.
+  if ($node->save_flag) {
+    return;
+  }
 
-    if ($node->getType() == "islandora_object") {
-        if (!static_metadata_records_exclude_node($node->id())){
-            static_metadata_records_enqueue($node);    
-        }
+  if ($node->getType() == "islandora_object") {
+    if (!static_metadata_records_exclude_node($node->id())) {
+      static_metadata_records_enqueue($node);
     }
+  }
 }
 
 /**
- * Implements hook_ENTITY_TYPE_insert()
- * - Adds the new node id to the queue if the node type is "islandora_object"
+ * Implements hook_node_insert().
+ *
+ * Adds the new node ID to the queue if the node type is islandora_object.
  */
-function static_metadata_records_node_insert(NodeInterface $node) {  
-    $config = \Drupal::config('static_metadata_records.settings');
-    if (!$config->get('enable_hooks')){
-        \Drupal::logger('static_metadata_records')->warning("enable hooks is disabled");
-        return;
-    }
+function static_metadata_records_node_insert(NodeInterface $node) {
+  $config = \Drupal::config('static_metadata_records.settings');
+  if (!$config->get('enable_hooks')) {
+    \Drupal::logger('static_metadata_records')->warning("enable hooks is disabled");
+    return;
+  }
 
-    if ($node->getType() == "islandora_object") {
-        if (!static_metadata_records_exclude_node($node->id())){
-            static_metadata_records_enqueue($node);    
-        }
-        else{
-            \Drupal::logger('static_metadata_records')->error("found match");
-        }
+  if ($node->getType() == "islandora_object") {
+    if (!static_metadata_records_exclude_node($node->id())) {
+      static_metadata_records_enqueue($node);
     }
+    else {
+      \Drupal::logger('static_metadata_records')->error("found match");
+    }
+  }
 }
 
 /**
- * Helper function to add a node to the queue
- * * @param \Drupal\node\NodeInterface $node
- * The node to be queued
+ * Adds a node to the queue.
+ *
+ * @param \Drupal\node\NodeInterface $node
+ *   The node to be queued.
  */
-function static_metadata_records_enqueue(NodeInterface $node){
-    $queueFactory = \Drupal::service('queue');
-    $queue = $queueFactory->get('static_metadata_records_queue');    
-    $item = new \stdClass();
-    $item->nid = $node->id();
-    $item->uid = \Drupal::currentUser()->id();
-    $queue->createItem($item);
+function static_metadata_records_enqueue(NodeInterface $node) {
+  $queueFactory = \Drupal::service('queue');
+  $queue = $queueFactory->get('static_metadata_records_queue');
+  $item = new \stdClass();
+  $item->nid = $node->id();
+  $item->uid = \Drupal::currentUser()->id();
+  $queue->createItem($item);
 }
-?>

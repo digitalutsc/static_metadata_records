@@ -2,106 +2,128 @@
 
 namespace Drupal\Tests\static_metadata_records\Kernel;
 
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\static_metadata_records\Drush\Commands\MetadataRecordsCommands;
 
 /**
  * Tests Drush command input validation.
+ *
  * @group static_metadata_records
-*/
+ */
 class DrushInputTest extends KernelTestBase {
 
-    // Add node and field here
-    protected static $modules = ['static_metadata_records', 'system', 'user', 'node', 'field', 'text', 'filter'];
-    
-    protected function setUp(): void {
-        parent::setUp();
-        
-        // installation
-        $this->installEntitySchema('node');
-        $this->installEntitySchema('user');
+  /**
+   * Add node and field here.
+   *
+   * @var string[]
+   */
+  protected static $modules = ['static_metadata_records', 'system', 'user', 'node', 'field', 'text', 'filter'];
 
-        \Drupal\node\Entity\NodeType::create([
-            'type' => 'islandora_object',
-            'name' => 'Repository Item',
-        ])->save();
+  /**
+   * The initial set up.
+   */
+  protected function setUp(): void {
+    parent::setUp();
 
-        $this->installConfig(['field', 'node', 'text', 'filter', 'static_metadata_records']);
+    // Installation.
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('user');
 
-        // Explicitly create the queue to ensure the table is initialized.
-        $this->container->get('queue')->get('static_metadata_records_queue')->createQueue();
-    }
+    NodeType::create([
+      'type' => 'islandora_object',
+      'name' => 'Repository Item',
+    ])->save();
 
-    // uid and file invalid
-    public function testUidAndFileInvalid() {
-        $commands = new MetadataRecordsCommands();
-        $options = ['uid' => '', 'file' => 'fake_file.csv'];
-        $result = $commands->metadataRecords($options);
-        
-        $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
-        $this->assertEquals(0, $queue->numberOfItems());
-    }
+    $this->installConfig(['field', 'node', 'text', 'filter', 'static_metadata_records']);
 
-    // uid valid, file invalid
-    public function testUidValid() {
-        $commands = new MetadataRecordsCommands();
-        $options = ['uid' => '1', 'file' => 'fake_path.csv'];
-        $commands->metadataRecords($options);
-        
-        $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
-        $this->assertEquals(0, $queue->numberOfItems());    
-    }
+    // Explicitly create the queue to ensure the table is initialized.
+    $this->container->get('queue')->get('static_metadata_records_queue')->createQueue();
+  }
 
-    // uid invalid, file valid
-    public function testFileValid() {
-        // creating a node so drush command can load it 
-        $node = \Drupal\node\Entity\Node::create([
-            'nid' => 101,
-            'type' => 'islandora_object', 
-            'title' => 'Test Node',
-        ]);
-        $node->save();
+  /**
+   * Uid and file invalid.
+   */
+  public function testUidAndFileInvalid() {
+    $commands = new MetadataRecordsCommands();
+    $options = ['uid' => '', 'file' => 'fake_file.csv'];
+    // phpcs:ignore -- Unused variable $result.
+    $result = $commands->metadataRecords($options);
 
-        // creating a temp file
-        $tempFilePath = tempnam(sys_get_temp_dir(), 'test_csv') . '.csv';
-        file_put_contents($tempFilePath, "101");
+    $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
+    $this->assertEquals(0, $queue->numberOfItems());
+  }
 
-        // run the command
-        $commands = new MetadataRecordsCommands();
-        $options = ['uid' => '', 'file' => $tempFilePath];
-        $commands->metadataRecords($options);
-        
-        // final check
-        $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
-        $this->assertEquals(0, $queue->numberOfItems(), 'Node 101 should not be in the queue.');
+  /**
+   * Uid valid, file invalid.
+   */
+  public function testUidValid() {
+    $commands = new MetadataRecordsCommands();
+    $options = ['uid' => '1', 'file' => 'fake_path.csv'];
+    $commands->metadataRecords($options);
 
-        unlink($tempFilePath); // Cleanup
-    }
+    $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
+    $this->assertEquals(0, $queue->numberOfItems());
+  }
 
-    // uid valid, file valid
-    public function testUidAndFileValid() {
-        // creating a node so drush command can load it 
-        $node = \Drupal\node\Entity\Node::create([
-            'nid' => 101,
-            'type' => 'islandora_object', 
-            'title' => 'Test Node',
-        ]);
-        $node->save();
+  /**
+   * Uid invalid, file valid.
+   */
+  public function testFileValid() {
+    // Creating a node so drush command can load it.
+    $node = Node::create([
+      'nid' => 101,
+      'type' => 'islandora_object',
+      'title' => 'Test Node',
+    ]);
+    $node->save();
 
-        // creating a temp file
-        $tempFilePath = tempnam(sys_get_temp_dir(), 'test_csv') . '.csv';
-        file_put_contents($tempFilePath, "101");
+    // Creating a temp file.
+    $tempFilePath = tempnam(sys_get_temp_dir(), 'test_csv') . '.csv';
+    file_put_contents($tempFilePath, "101");
 
-        // run the command
-        $commands = new MetadataRecordsCommands();
-        $options = ['uid' => 1, 'file' => $tempFilePath];
-        $commands->metadataRecords($options);
-        
-        // final check
-        $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
+    // Run the command.
+    $commands = new MetadataRecordsCommands();
+    $options = ['uid' => '', 'file' => $tempFilePath];
+    $commands->metadataRecords($options);
 
-        $this->assertEquals(1, $queue->numberOfItems(), 'Node 101 should be in the queue.');
+    // Final check.
+    $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
+    $this->assertEquals(0, $queue->numberOfItems(), 'Node 101 should not be in the queue.');
 
-        unlink($tempFilePath); // Cleanup
-    }
+    // Cleanup.
+    unlink($tempFilePath);
+  }
+
+  /**
+   * Uid valid, file valid.
+   */
+  public function testUidAndFileValid() {
+    // Creating a node so drush command can load it.
+    $node = Node::create([
+      'nid' => 101,
+      'type' => 'islandora_object',
+      'title' => 'Test Node',
+    ]);
+    $node->save();
+
+    // Creating a temp file.
+    $tempFilePath = tempnam(sys_get_temp_dir(), 'test_csv') . '.csv';
+    file_put_contents($tempFilePath, "101");
+
+    // Run the command.
+    $commands = new MetadataRecordsCommands();
+    $options = ['uid' => 1, 'file' => $tempFilePath];
+    $commands->metadataRecords($options);
+
+    // Final check.
+    $queue = \Drupal::getContainer()->get('queue')->get('static_metadata_records_queue');
+
+    $this->assertEquals(1, $queue->numberOfItems(), 'Node 101 should be in the queue.');
+
+    // Cleanup.
+    unlink($tempFilePath);
+  }
+
 }
