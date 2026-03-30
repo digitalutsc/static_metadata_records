@@ -11,6 +11,7 @@ use Drupal\KernelTests\KernelTestBase;
  *
  * @group static_metadata_records
  */
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 class ResponseValidationTest extends KernelTestBase {
   /**
    * Modules to enable.

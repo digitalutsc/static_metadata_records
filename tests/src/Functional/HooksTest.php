@@ -9,6 +9,7 @@ use Drupal\Tests\BrowserTestBase;
  *
  * @group static_metadata_records
  */
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 class HooksTest extends BrowserTestBase {
 
   /**

@@ -11,6 +11,7 @@ use Drupal\node\Entity\Node;
  *
  * @group static_metadata_records
  */
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 class ExclusionLogicTest extends KernelTestBase {
   /**
    * The list of modules to include.

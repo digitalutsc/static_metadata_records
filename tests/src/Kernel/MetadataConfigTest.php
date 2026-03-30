@@ -9,6 +9,7 @@ use Drupal\KernelTests\KernelTestBase;
  *
  * @group static_metadata_records
  */
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 class MetadataConfigTest extends KernelTestBase {
 
   /**

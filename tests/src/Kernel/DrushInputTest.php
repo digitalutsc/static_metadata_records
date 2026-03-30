@@ -12,6 +12,7 @@ use Drupal\static_metadata_records\Drush\Commands\MetadataRecordsCommands;
  *
  * @group static_metadata_records
  */
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 class DrushInputTest extends KernelTestBase {
 
   /**
