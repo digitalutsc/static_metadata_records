@@ -2,7 +2,7 @@ name: Static Metadata Records
 type: module
 description: Custom Drupal Module for fetching XML data and storing them into Plain Text (Long) fields.
 package: Custom
-core_version_requirement: ^10
+core_version_requirement: ^10 || ^11
 dependencies:
   - drupal:rest_oai_pmh
   - drupal:jwt
