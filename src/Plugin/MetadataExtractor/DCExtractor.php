@@ -108,7 +108,11 @@ class DCExtractor implements MetadataExtractorInterface {
     }
 
     // Schema validation.
-    $xmlSchema = "https://www.dublincore.org/schemas/xmls/simpledc20021212.xsd";
+    $module_handler = \Drupal::service('extension.list.module');
+    // Use DRUPAL_ROOT to ensure the path is absolute from the server root.
+    $xmlSchema = DRUPAL_ROOT . '/' . $module_handler->getPath('static_metadata_records') . "/assets/dc_schema.xsd";
+
+    // $xmlSchema = "https://www.dublincore.org/schemas/xmls/simpledc20021212.xsd";
     $dom = new \DOMDocument();
     if ($dom->loadXML($refined)) {
       libxml_use_internal_errors(TRUE);

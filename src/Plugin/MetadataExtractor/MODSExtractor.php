@@ -106,7 +106,11 @@ class MODSExtractor implements MetadataExtractorInterface {
     }
 
     // Schema validation.
-    $xmlSchema = "https://www.loc.gov/standards/mods/v3/mods-3-8.xsd";
+    $module_handler = \Drupal::service('extension.list.module');
+    // Use DRUPAL_ROOT to ensure the path is absolute from the server root.
+    $xmlSchema = DRUPAL_ROOT . '/' . $module_handler->getPath('static_metadata_records') . "/assets/mods_schema.xsd";
+
+    // $xmlSchema = "https://www.loc.gov/standards/mods/v3/mods-3-8.xsd";
     $dom = new \DOMDocument();
     if ($dom->loadXML($refined)) {
       libxml_use_internal_errors(TRUE);
