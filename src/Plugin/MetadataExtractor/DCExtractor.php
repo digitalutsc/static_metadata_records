@@ -112,6 +112,7 @@ class DCExtractor implements MetadataExtractorInterface {
     // Use DRUPAL_ROOT to ensure the path is absolute from the server root.
     $xmlSchema = DRUPAL_ROOT . '/' . $module_handler->getPath('static_metadata_records') . "/assets/dc_schema.xsd";
 
+    // phpcs:ignore -- Line exceeds 80 characters; contains 83 characters
     // $xmlSchema = "https://www.dublincore.org/schemas/xmls/simpledc20021212.xsd";
     $dom = new \DOMDocument();
     if ($dom->loadXML($refined)) {
