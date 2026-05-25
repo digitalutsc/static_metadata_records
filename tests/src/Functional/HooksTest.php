@@ -1,7 +1,5 @@
 <?php
 
-// ./vendor/bin/phpunit web/modules/custom/static_metadata_records/tests/src/Functional/HooksTest.php 
-
 namespace Drupal\Tests\static_metadata_records\Functional;
 
 use Drupal\Tests\BrowserTestBase;
@@ -11,6 +9,7 @@ use Drupal\Tests\BrowserTestBase;
  *
  * @group static_metadata_records
  */
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 class HooksTest extends BrowserTestBase {
 
   /**
@@ -47,6 +46,7 @@ class HooksTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  // phpcs:ignore -- Do not disable strict config schema checking in tests.
   protected $strictConfigSchema = FALSE;
 
   /**
@@ -69,16 +69,17 @@ class HooksTest extends BrowserTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    // sample content type
+    // Sample content type.
     $this->drupalCreateContentType([
       'type' => 'islandora_object',
       'name' => 'Islandora Object',
     ]);
 
-    // enable the hooks in the module config to simulate the tests
+    // Enable the hooks in the module config to simulate the tests.
     $this->config('static_metadata_records.settings')
       ->set('enable_hooks', TRUE)
-      ->set('excluded_content_types', []) // to make sure nothing is exluded
+    // To make sure nothing is exluded.
+      ->set('excluded_content_types', [])
       ->save();
   }
 
@@ -86,7 +87,7 @@ class HooksTest extends BrowserTestBase {
    * Tests hook_node_insert.
    */
   public function testNodeInsertHook() {
-    // create node and queue
+    // Create node and queue.
     $node = $this->drupalCreateNode([
       'type' => 'islandora_object',
       'title' => 'Hook Test Node',
@@ -94,15 +95,15 @@ class HooksTest extends BrowserTestBase {
 
     $queue = \Drupal::queue('static_metadata_records_queue');
 
-    // check whether the hook successfully added the item to our queue
+    // Check whether the hook successfully added the item to our queue.
     $this->assertEquals(1, $queue->numberOfItems(), 'The node was automatically added to the queue via hook_node_insert.');
-    
-    // checking the data
+
+    // Checking the data.
     $item = $queue->claimItem();
 
-    // note for debugging: in queue items are stored as 'stdClass'
+    // Note for debugging: in queue items are stored as 'stdClass'.
     $queued_nid = NULL;
-    if (isset($item->data->nid)){
+    if (isset($item->data->nid)) {
       $queued_nid = $item->data->nid;
     }
     $this->assertEquals($node->id(), $queued_nid, 'The queued item has the correct Node ID.');
@@ -112,17 +113,17 @@ class HooksTest extends BrowserTestBase {
    * Tests hook_node_update.
    */
   public function testNodeUpdateHook() {
-    // create node
+    // Create node.
     $node = $this->drupalCreateNode([
       'type' => 'islandora_object',
       'title' => 'Original Title',
     ]);
 
-    // clear the queue because it is possible that the insert hook might have added it
+    // Clear the queue as insert hook might have added it.
     $queue = \Drupal::queue('static_metadata_records_queue');
     $queue->deleteQueue();
 
-    // update the node
+    // Update the node.
     $node->setTitle('Testing Updated Title');
     $node->save();
 
